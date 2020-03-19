@@ -595,6 +595,7 @@ struct bcm_cfg80211 {
 	s32 cfgdev_bssidx;
 	bool bss_pending_op;		/* indicate where there is a pending IF operation */
 	bool roam_offload;
+	struct notifier_block netdev_notifier;
 };
 
 extern int ioctl_version;

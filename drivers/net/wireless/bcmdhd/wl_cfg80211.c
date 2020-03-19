@@ -10317,13 +10317,15 @@ wl_cfg80211_netdev_notifier_call(struct notifier_block * nb,
 	unsigned long state,
 	void *ndev)
 {
+	struct bcm_cfg80211 *cfg =
+		container_of(nb, struct bcm_cfg80211, netdev_notifier);
 	struct net_device *dev = ndev;
 	struct wireless_dev *wdev = dev->ieee80211_ptr;
-	struct bcm_cfg80211 *cfg = wl_get_cfg(dev);
+	//struct bcm_cfg80211 *cfg = wl_get_cfg(dev);
 
 	WL_DBG(("Enter \n"));
 
-	if (!wdev || !cfg || dev == bcmcfg_to_prmry_ndev(cfg))
+	if (!wdev || dev == bcmcfg_to_prmry_ndev(cfg))
 		return NOTIFY_DONE;
 
 	switch (state) {
@@ -10380,13 +10382,6 @@ wl_cfg80211_netdev_notifier_call(struct notifier_block * nb,
 	}
 	return NOTIFY_DONE;
 }
-static struct notifier_block wl_cfg80211_netdev_notifier = {
-	.notifier_call = wl_cfg80211_netdev_notifier_call,
-};
-/* to make sure we won't register the same notifier twice, otherwise a loop is likely to be
- * created in kernel notifier link list (with 'next' pointing to itself)
- */
-static bool wl_cfg80211_netdev_notifier_registered = FALSE;
 
 static void wl_cfg80211_scan_abort(struct bcm_cfg80211 *cfg)
 {
@@ -11070,10 +11065,7 @@ static void wl_deinit_priv(struct bcm_cfg80211 *cfg)
 	wl_link_down(cfg);
 	del_timer_sync(&cfg->scan_timeout);
 	wl_deinit_priv_mem(cfg);
-	if (wl_cfg80211_netdev_notifier_registered) {
-		wl_cfg80211_netdev_notifier_registered = FALSE;
-		unregister_netdevice_notifier(&wl_cfg80211_netdev_notifier);
-	}
+	unregister_netdevice_notifier(&cfg->netdev_notifier);
 }
 
 #if defined(WL_ENABLE_P2P_IF)
@@ -11245,14 +11237,11 @@ s32 wl_cfg80211_attach(struct net_device *ndev, void *context)
 		goto cfg80211_attach_out;
 	}
 #endif
-	if (!wl_cfg80211_netdev_notifier_registered) {
-		wl_cfg80211_netdev_notifier_registered = TRUE;
-		err = register_netdevice_notifier(&wl_cfg80211_netdev_notifier);
-		if (err) {
-			wl_cfg80211_netdev_notifier_registered = FALSE;
-			WL_ERR(("Failed to register notifierl %d\n", err));
-			goto cfg80211_attach_out;
-		}
+	cfg->netdev_notifier.notifier_call = wl_cfg80211_netdev_notifier_call;
+	err = register_netdevice_notifier(&cfg->netdev_notifier);
+	if (err) {
+		WL_ERR(("Failed to register notifierl %d\n", err));
+		goto cfg80211_attach_out;
 	}
 #if defined(COEX_DHCP)
 	cfg->btcoex_info = wl_cfg80211_btcoex_init(cfg->wdev->netdev);
