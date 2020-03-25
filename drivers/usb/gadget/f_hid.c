@@ -742,7 +742,7 @@ static void hidg_unbind(struct usb_configuration *c, struct usb_function *f)
 	cdev_del(&hidg->cdev);
 
 	/* disable/free request and end point */
-	usb_ep_disable(hidg->in_ep);
+	usb_ep_disable(hidg->in_ep);	
 	/* TODO: calling this function crash kernel,
 	   not calling this funct ion crash kernel inside f_hidg_write */
 	/* usb_ep_dequeue(hidg->in_ep, hidg->req); */

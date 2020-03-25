@@ -42,3 +42,4 @@ static struct hidg_func_descriptor ghid_device_android_keyboard = {
 		0xc0		/* END_COLLECTION                         */
 	}
 };
+

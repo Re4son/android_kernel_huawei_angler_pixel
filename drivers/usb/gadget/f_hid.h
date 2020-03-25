@@ -14,3 +14,4 @@ int ghid_setup(struct usb_gadget *g, int count);
 void ghid_cleanup(void);
 
 #endif
+

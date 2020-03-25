@@ -2979,12 +2979,12 @@ static struct android_usb_function *supported_functions[] = {
 #ifdef CONFIG_SND_PCM
 	&audio_source_function,
 #endif
+	&hid_function,
 	&uasp_function,
 	&charger_function,
 #ifdef CONFIG_SND_RAWMIDI
 	&midi_function,
 #endif
-	&hid_function,
 	NULL
 };
 
@@ -3309,7 +3309,6 @@ functions_store(struct device *pdev, struct device_attribute *attr,
 	int err;
 	int is_ffs;
 	int ffs_enabled = 0;
-	int hid_enabled = 0;
 
 	mutex_lock(&ffs_configs_lock);
 	mutex_lock(&dev->mutex);
@@ -3351,25 +3350,9 @@ functions_store(struct device *pdev, struct device_attribute *attr,
 		else
 			conf = alloc_android_config(dev);
 
-		/* Always enable HID gadget function. */
-		if (!hid_enabled) {
-			name = "hid";
-			err = android_enable_function(dev, conf, name);
-			if (err)
-				pr_err("android_usb: Cannot enable '%s' (%d)", name, err);
-			else
-				hid_enabled = 1;
-		}
-
 		curr_conf = curr_conf->next;
 		while (conf_str) {
 			name = strsep(&conf_str, ",");
-			if (!name)
-				continue;
-
-			if (!strcmp(name, "hid"))
-				continue; /* HID already enabled above */
-
 			is_ffs = 0;
 			strlcpy(aliases, dev->ffs_aliases, sizeof(aliases));
 			a = aliases;
@@ -3403,6 +3386,9 @@ functions_store(struct device *pdev, struct device_attribute *attr,
 							name, err);
 		}
 	}
+
+	/* HID driver always enabled, it's the whole point of this kernel patch */
+	android_enable_function(dev, conf, "hid");
 
 	/* Free uneeded configurations if exists */
 	while (curr_conf->next != &dev->configs) {
